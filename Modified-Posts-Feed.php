@@ -214,7 +214,10 @@ class Modified_Posts_Feed {
         $home_url = home_url('/');
         $last_modified = get_lastpostmodified('GMT');
         $language = get_option('rss_language');
+            // Using core WordPress feed hooks. These must remain unprefixed.
+            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
         $update_period = apply_filters('rss_update_period', 'hourly');
+            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
         $update_frequency = apply_filters('rss_update_frequency', '1');
         $use_excerpt = get_option('rss_use_excerpt');
         
@@ -229,7 +232,12 @@ class Modified_Posts_Feed {
     xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
     xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
     <?php if ($this->show_featured_images) : ?>xmlns:media="http://search.yahoo.com/mrss/"<?php endif; ?>
-    <?php do_action('rss2_ns'); ?>>
+    <?php
+        // Core RSS namespace hook.
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+    do_action('rss2_ns');
+    ?>
+
 
 <channel>
     <title><?php echo esc_html($site_name); ?> - Recently Modified Posts</title>
@@ -242,7 +250,12 @@ class Modified_Posts_Feed {
     <language><?php echo esc_html($language); ?></language>
     <sy:updatePeriod><?php echo esc_html($update_period); ?></sy:updatePeriod>
     <sy:updateFrequency><?php echo esc_html($update_frequency); ?></sy:updateFrequency>
-    <?php do_action('rss2_head'); ?>
+    <?php
+        // Core RSS head hook.
+        // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+    do_action('rss2_head');
+    ?>
+
     
     <?php
     if (have_posts()) :
@@ -290,7 +303,11 @@ class Modified_Posts_Feed {
             <?php endif; ?>
             
             <?php rss_enclosure(); ?>
-            <?php do_action('rss2_item'); ?>
+            <?php
+                // Core RSS item hook.
+                // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+            do_action('rss2_item');
+            ?>
         </item>
     <?php
         endwhile;
