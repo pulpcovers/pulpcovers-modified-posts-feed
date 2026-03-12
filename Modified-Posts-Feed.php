@@ -245,8 +245,12 @@ class Modified_Posts_Feed {
     <link><?php echo esc_url($home_url); ?></link>
     <description><?php echo esc_html($site_description); ?> - Recently Modified Posts</description>
     <?php if ($last_modified) : ?>
+    <?php
+        // Date output must remain unescaped for valid RSS formatting.
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    ?>
     <lastBuildDate><?php echo mysql2date('D, d M Y H:i:s +0000', $last_modified, false); ?></lastBuildDate>
-    <?php endif; ?>
+<?php endif; ?>
     <language><?php echo esc_html($language); ?></language>
     <sy:updatePeriod><?php echo esc_html($update_period); ?></sy:updatePeriod>
     <sy:updateFrequency><?php echo esc_html($update_frequency); ?></sy:updateFrequency>
@@ -268,7 +272,16 @@ class Modified_Posts_Feed {
         <item>
             <title><?php the_title_rss(); ?></title>
             <link><?php the_permalink_rss(); ?></link>
+            <?php
+            // RSS date must remain unescaped.
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    ?>
             <pubDate><?php echo $pub_date; ?></pubDate>
+
+    <?php
+        // RSS modified date must remain unescaped.
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    ?>
             <dc:modified><?php echo $mod_date; ?></dc:modified>
             <dc:creator><![CDATA[<?php the_author(); ?>]]></dc:creator>
             <?php the_category_rss('rss2'); ?>
@@ -299,7 +312,7 @@ class Modified_Posts_Feed {
             
             <?php if ($comment_count > 0) : ?>
                 <wfw:commentRss><?php echo esc_url(get_post_comments_feed_link($post_id, 'rss2')); ?></wfw:commentRss>
-                <slash:comments><?php echo $comment_count; ?></slash:comments>
+                <slash:comments><?php echo intval($comment_count); ?></slash:comments>
             <?php endif; ?>
             
             <?php rss_enclosure(); ?>
