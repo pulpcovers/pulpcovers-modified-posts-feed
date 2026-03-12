@@ -733,20 +733,25 @@ if ( ! $index_action_performed ) {
     public function render_post_types_field() {
         $selected_types = get_option('modified_posts_feed_post_types', array('post'));
         $post_types = get_post_types(array('public' => true), 'objects');
-        
-        echo '<fieldset>';
-        foreach ($post_types as $post_type) {
-            $checked = in_array($post_type->name, $selected_types) ? 'checked' : '';
-            ?>
-            <label style="display: block; margin-bottom: 5px;">
-                <input type="checkbox" name="modified_posts_feed_post_types[]" value="<?php echo esc_attr($post_type->name); ?>" <?php echo $checked; ?>>
-                <?php echo esc_html($post_type->labels->name); ?> (<?php echo esc_html($post_type->name); ?>)
-            </label>
-            <?php
-        }
-        echo '</fieldset>';
         ?>
+    
+        <fieldset>
+            <?php foreach ($post_types as $post_type) : 
+                $checked = in_array($post_type->name, $selected_types) ? 'checked' : '';
+            ?>
+                <label style="display: block; margin-bottom: 5px;">
+                    <input type="checkbox"
+                           name="modified_posts_feed_post_types[]"
+                           value="<?php echo esc_attr($post_type->name); ?>"
+                           <?php echo $checked ? 'checked' : ''; ?>>
+                    <?php echo esc_html($post_type->labels->name); ?>
+                    (<?php echo esc_html($post_type->name); ?>)
+                </label>
+            <?php endforeach; ?>
+        </fieldset>
+    
         <p class="description">Select which post types to include in the feed.</p>
+    
         <?php
     }
     
