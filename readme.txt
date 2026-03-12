@@ -1,6 +1,5 @@
 === Modified Posts Feed ===
 Contributors: pulpcovers
-Donate link: https://pulpcovers.com
 Tags: rss, feed, modified posts, updated posts, syndication
 Requires at least: 5.0
 Tested up to: 6.9.4
@@ -101,5 +100,6 @@ This is optional but recommended for high‑traffic or large‑content sites.
 
 = 1.0.1 =
 Recommended update. Adds settings page, caching, and performance improvements.
+
 
 
