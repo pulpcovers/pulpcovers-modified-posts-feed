@@ -155,6 +155,8 @@ class Modified_Posts_Feed {
             $cached_feed = get_transient($this->cache_key);
             if (false !== $cached_feed) {
                 $this->send_headers();
+                // Cached feed output is pre-generated XML and must not be escaped.
+                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
                 echo $cached_feed;
                 exit;
             }
