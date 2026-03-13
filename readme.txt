@@ -78,11 +78,6 @@ No, but it is recommended for performance, especially on large sites.
 It adds an index on the `post_modified` column to speed up queries.  
 This is optional but recommended for high‑traffic or large‑content sites.
 
-== Screenshots ==
-
-1. Settings page showing feed configuration options  
-2. Example of the modified posts feed in an RSS reader  
-
 == Changelog ==
 
 = 1.0.1 =
