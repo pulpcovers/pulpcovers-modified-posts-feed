@@ -1,0 +1,31 @@
+# .github/workflows/deploy.yml
+name: Deploy to WordPress.org
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Get version
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+    
+    - name: Update plugin file
+      run: |
+        sed -i "s/\* Version: .*/\* Version: ${{ steps.version.outputs.VERSION }}/" modified-posts-feed.php
+    
+    - name: Update readme
+      run: |
+        sed -i "s/Stable tag: .*/Stable tag: ${{ steps.version.outputs.VERSION }}/" readme.txt
+    
+    - name: Deploy
+      uses: 10up/action-wordpress-plugin-deploy@stable
+      env:
+        SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+        SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+        SLUG: modified-posts-feed
