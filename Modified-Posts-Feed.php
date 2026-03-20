@@ -597,14 +597,14 @@ class Modified_Posts_Feed {
 		$index_action_performed = false;
 		
 		// Handle manual actions
-		if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
+		if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST' &&
 			isset($_POST['clear_cache']) &&
 			check_admin_referer('clear_cache', 'modified_posts_feed_clear_cache_nonce')) {
 			$this->clear_cache();
 			add_settings_error('modified_posts_feed_messages', 'cache_cleared', 'Cache cleared successfully!', 'success');
 		}
-		
-		if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
+
+		if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST' &&
 			isset($_POST['add_index']) &&
 			check_admin_referer('add_index', 'modified_posts_feed_add_index_nonce')) {
 			modified_posts_feed_add_index();
@@ -612,8 +612,8 @@ class Modified_Posts_Feed {
 			$index_exists = true;
 			$index_action_performed = true;
 		}
-		
-		if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
+
+		if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'POST' &&
 			isset($_POST['remove_index']) &&
 			check_admin_referer('remove_index', 'modified_posts_feed_remove_index_nonce')) {
 			modified_posts_feed_remove_index();
