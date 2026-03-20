@@ -17,7 +17,6 @@ if (!defined('ABSPATH')) {
 
 class Modified_Posts_Feed {
     
-    private $cache_key;
     private $settings_loaded = false;
     
     /**
@@ -38,32 +37,42 @@ class Modified_Posts_Feed {
     
     // Feature Toggles
     private $show_featured_images = true;
-    
-    /**
-     * Initialize the plugin
-     */
-    public function __construct() {
-        // Make cache key unique per site (for multisite compatibility)
-        $this->cache_key = 'modified_posts_feed_output_' . get_current_blog_id();
-        
-        add_action('init', array($this, 'init_feed'));
-        add_action('pre_get_posts', array($this, 'modify_feed_query'));
-        add_action('save_post', array($this, 'clear_cache'));
-        add_action('deleted_post', array($this, 'clear_cache'));
-        add_action('switch_theme', array($this, 'clear_cache'));
-        
-        // Admin settings
-        if (is_admin()) {
-            add_action('admin_menu', array($this, 'add_settings_page'));
-            add_action('admin_init', array($this, 'register_settings'));
-            add_action('admin_init', array($this, 'register_cache_clear_hooks'));
-            add_action('admin_init', array($this, 'maybe_flush_rewrite_rules'));
-        }
-    }
-    
-    /**
-     * Initialize feed (loads settings and registers feed)
-     */
+		
+	/**
+	 * Initialize the plugin
+	 */
+	public function __construct() {
+		add_action('init', array($this, 'init_feed'));
+		add_action('pre_get_posts', array($this, 'modify_feed_query'));
+		add_action('save_post', array($this, 'clear_cache'));
+		add_action('deleted_post', array($this, 'clear_cache'));
+		add_action('switch_theme', array($this, 'clear_cache'));
+		
+		// Admin settings
+		if (is_admin()) {
+			add_action('admin_menu', array($this, 'add_settings_page'));
+			add_action('admin_init', array($this, 'register_settings'));
+			add_action('admin_init', array($this, 'register_cache_clear_hooks'));
+			add_action('admin_init', array($this, 'maybe_flush_rewrite_rules'));
+		}
+	}
+
+	/**
+	 * Get cache key unique to current configuration
+	 */
+	private function get_cache_key() {
+		// Make cache key unique per site and configuration (for multisite compatibility)
+		return 'modified_posts_feed_output_' . md5(serialize(array(
+			get_current_blog_id(),
+			$this->feed_slug,
+			$this->posts_per_page,
+			$this->post_types
+		)));
+	}
+
+	/**
+	 * Initialize feed (loads settings and registers feed)
+	 */
     public function init_feed() {
         $this->load_settings();
         add_feed($this->feed_slug, array($this, 'generate_feed'));
@@ -122,64 +131,56 @@ class Modified_Posts_Feed {
      * Clear feed cache when content changes
      */
     public function clear_cache() {
-        delete_transient($this->cache_key);
-    }
+		delete_transient($this->get_cache_key());
+	}
     
     /**
-     * Modify the feed query to order by modified date
-     */
-    public function modify_feed_query($query) {
-        // Load settings only if this is our feed
-        if ($query->is_feed()) {
-            $this->load_settings();
-            
-            if ($query->is_feed($this->feed_slug) && !is_admin()) {
-                $query->set('orderby', 'modified');
-                $query->set('order', 'DESC');
-                $query->set('post_status', 'publish');
-                $query->set('post_type', $this->post_types);
-                $query->set('posts_per_page', $this->posts_per_page);
-                $query->set('no_found_rows', true);
-                $query->set('update_post_meta_cache', true);
-                
-                do_action('modified_posts_feed_query', $query);
-            }
-        }
-    }
-    
-    /**
-     * Generate the RSS feed
-     */
-    public function generate_feed() {
-        if ($this->cache_enabled) {
-            $cached_feed = get_transient($this->cache_key);
-            if (false !== $cached_feed) {
-                $this->send_headers();
-                // Cached feed output is pre-generated XML and must not be escaped.
-                // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-                echo $cached_feed;
-                exit;
-            }
-        }
-        
-        // Send headers before starting buffer
-        $this->send_headers();
-        
-        // Start output buffering to cache the feed
-        ob_start();
-        
-        $this->render_feed();
-        
-        // Cache the output
-        if ($this->cache_enabled) {
-            $output = ob_get_contents();
-            if ($output) {
-                set_transient($this->cache_key, $output, $this->cache_duration);
-            }
-        }
-        
-        ob_end_flush();
-    }
+	 * Modify the feed query to order by modified date
+	 */
+	public function modify_feed_query($query) {
+		if ($query->is_feed($this->feed_slug) && !is_admin()) {
+			$this->load_settings();
+			
+			$query->set('orderby', 'modified');
+			$query->set('order', 'DESC');
+			$query->set('post_status', 'publish');
+			$query->set('post_type', $this->post_types);
+			$query->set('posts_per_page', $this->posts_per_page);
+			$query->set('no_found_rows', true);
+			$query->set('update_post_meta_cache', false);
+			$query->set('update_post_term_cache', true);
+			
+			do_action('modified_posts_feed_query', $query);
+		}
+	}
+
+	/**
+	 * Generate the RSS feed
+	 */
+	public function generate_feed() {
+		if ($this->cache_enabled) {
+			$cached_feed = get_transient($this->get_cache_key());
+			if (false !== $cached_feed) {
+				$this->send_headers();
+				// Cached feed output is pre-generated XML and must not be escaped.
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				echo $cached_feed;
+				exit;
+			}
+		}
+		$this->send_headers();
+		// Start output buffering to cache the feed
+		ob_start();
+		$this->render_feed();
+		// Cache the output
+		if ($this->cache_enabled) {
+			$output = ob_get_contents();
+			if ($output) {
+				set_transient($this->get_cache_key(), $output, $this->cache_duration);
+			}
+		}
+		ob_end_flush();
+	}
     
     /**
      * Send HTTP headers
@@ -511,18 +512,28 @@ class Modified_Posts_Feed {
     }
     
     public function sanitize_slug($input) {
-        $slug = sanitize_title($input);
-        if (empty($slug)) {
-            add_settings_error('modified_posts_feed_messages', 'invalid_slug', 'Feed slug cannot be empty. Using default.', 'error');
-            return 'modified-posts';
-        }
-        // Trigger rewrite flush if slug changed
-        $old_slug = get_option('modified_posts_feed_slug', 'modified-posts');
-        if ($old_slug !== $slug) {
-            set_transient('modified_posts_feed_flush_rewrite_rules', true, 60);
-        }
-        return $slug;
-    }
+		$slug = sanitize_title($input);
+		
+		if (empty($slug)) {
+			add_settings_error('modified_posts_feed_messages', 'invalid_slug', 'Feed slug cannot be empty. Using default.', 'error');
+			return 'modified-posts';
+		}
+		
+		// Check for reserved WordPress slugs
+		$reserved = array('feed', 'rss', 'rss2', 'rdf', 'atom', 'wp-json', 'sitemap.xml', 'sitemap_index.xml', 'wp-sitemap.xml');
+		if (in_array($slug, $reserved, true)) {
+			add_settings_error('modified_posts_feed_messages', 'reserved_slug', 'This slug is reserved by WordPress. Using default.', 'error');
+			return 'modified-posts';
+		}
+		
+		// Trigger rewrite flush if slug changed
+		$old_slug = get_option('modified_posts_feed_slug', 'modified-posts');
+		if ($old_slug !== $slug) {
+			set_transient('modified_posts_feed_flush_rewrite_rules', true, 60);
+		}
+		
+		return $slug;
+	}
     
     public function sanitize_posts_per_page($input) {
         $value = absint($input);
@@ -571,44 +582,47 @@ class Modified_Posts_Feed {
         return $value;
     }
     
-    /**
-     * Render settings page
-     */
-    public function render_settings_page() {
-        if (!current_user_can('manage_options')) {
-            return;
-        }
-        
-        // Load settings for display
-        $this->load_settings();
-        
-        $index_exists = false;
-        $index_action_performed = false;
-        
-        // Handle manual actions
-        if (isset($_POST['clear_cache']) && 
-            check_admin_referer('clear_cache', 'modified_posts_feed_clear_cache_nonce')) {
-            $this->clear_cache();
-            add_settings_error('modified_posts_feed_messages', 'cache_cleared', 'Cache cleared successfully!', 'success');
-        }
-        
-        if (isset($_POST['add_index']) && 
-            check_admin_referer('add_index', 'modified_posts_feed_add_index_nonce')) {
-            modified_posts_feed_add_index();
-            add_settings_error('modified_posts_feed_messages', 'index_added', 'Database index added successfully!', 'success');
-            $index_exists = true;
-            $index_action_performed = true;
-        }
-        
-        if (isset($_POST['remove_index']) && 
-            check_admin_referer('remove_index', 'modified_posts_feed_remove_index_nonce')) {
-            modified_posts_feed_remove_index();
-            add_settings_error('modified_posts_feed_messages', 'index_removed', 'Database index removed.', 'success');
-            $index_exists = false;
-            $index_action_performed = true;
-        }
-        
-// Check index status only if not already determined by actions above
+	/**
+	 * Render settings page
+	 */
+	public function render_settings_page() {
+		if (!current_user_can('manage_options')) {
+			return;
+		}
+		
+		// Load settings for display
+		$this->load_settings();
+		
+		$index_exists = false;
+		$index_action_performed = false;
+		
+		// Handle manual actions
+		if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
+			isset($_POST['clear_cache']) &&
+			check_admin_referer('clear_cache', 'modified_posts_feed_clear_cache_nonce')) {
+			$this->clear_cache();
+			add_settings_error('modified_posts_feed_messages', 'cache_cleared', 'Cache cleared successfully!', 'success');
+		}
+		
+		if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
+			isset($_POST['add_index']) &&
+			check_admin_referer('add_index', 'modified_posts_feed_add_index_nonce')) {
+			modified_posts_feed_add_index();
+			add_settings_error('modified_posts_feed_messages', 'index_added', 'Database index added successfully!', 'success');
+			$index_exists = true;
+			$index_action_performed = true;
+		}
+		
+		if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
+			isset($_POST['remove_index']) &&
+			check_admin_referer('remove_index', 'modified_posts_feed_remove_index_nonce')) {
+			modified_posts_feed_remove_index();
+			add_settings_error('modified_posts_feed_messages', 'index_removed', 'Database index removed.', 'success');
+			$index_exists = false;
+			$index_action_performed = true;
+		}
+    
+    // Check index status only if not already determined by actions above
 if ( ! $index_action_performed ) {
     global $wpdb;
 
@@ -630,7 +644,7 @@ if ( ! $index_action_performed ) {
                 <p>
                     <strong>Your feed URL:</strong> 
                     <a href="<?php echo esc_url($feed_url); ?>" target="_blank"><?php echo esc_html($feed_url); ?></a>
-                    <button type="button" class="button button-small" onclick="navigator.clipboard.writeText('<?php echo esc_js($feed_url); ?>'); this.innerText='Copied!';" style="margin-left: 10px;">Copy URL</button>
+                    <button type="button" class="button button-small" onclick="navigator.clipboard.writeText(<?php echo wp_json_encode($feed_url); ?>); this.innerText='Copied!';" style="margin-left: 10px;">Copy URL</button>
                 </p>
                 <p>
                     <strong>Database Index Status:</strong> 
@@ -841,19 +855,46 @@ function modified_posts_feed_activate() {
     // Set flag to flush rewrite rules on next admin page load
     set_transient('modified_posts_feed_flush_rewrite_rules', true, 60);
     
-    // Clear cache for all sites in network
+    // Clear ALL cache variations (using wildcard since cache key is now dynamic)
+    global $wpdb;
+    
     if (is_multisite()) {
-        $sites = get_sites(array('number' => 10000));
+        $sites = get_sites(array('number' => 0)); // 0 = unlimited
         foreach ($sites as $site) {
-            delete_transient('modified_posts_feed_output_' . $site->blog_id);
+            switch_to_blog($site->blog_id);
+            
+            // Delete all transients matching our pattern
+            // Direct query needed to clear dynamic cache keys with wildcard
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->query(
+                $wpdb->prepare(
+                    "DELETE FROM {$wpdb->options} 
+                     WHERE option_name LIKE %s 
+                     OR option_name LIKE %s",
+                    $wpdb->esc_like('_transient_modified_posts_feed_output_') . '%',
+                    $wpdb->esc_like('_transient_timeout_modified_posts_feed_output_') . '%'
+                )
+            );
+            
+            restore_current_blog();
         }
     } else {
-        delete_transient('modified_posts_feed_output_' . get_current_blog_id());
+        // Delete all transients matching our pattern
+        // Direct query needed to clear dynamic cache keys with wildcard
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM {$wpdb->options} 
+                 WHERE option_name LIKE %s 
+                 OR option_name LIKE %s",
+                $wpdb->esc_like('_transient_modified_posts_feed_output_') . '%',
+                $wpdb->esc_like('_transient_timeout_modified_posts_feed_output_') . '%'
+            )
+        );
     }
     
     // Check option - defaults to true (add index for better performance)
     $add_index = get_option('modified_posts_feed_add_index', true);
-    
     if ($add_index) {
         modified_posts_feed_add_index();
     }
@@ -871,19 +912,46 @@ function modified_posts_feed_deactivate() {
     
     flush_rewrite_rules();
     
-    // Clear cache for all sites in network
+    // Clear ALL cache variations (using wildcard since cache key is now dynamic)
+    global $wpdb;
+    
     if (is_multisite()) {
-        $sites = get_sites(array('number' => 10000));
+        $sites = get_sites(array('number' => 0)); // 0 = unlimited
         foreach ($sites as $site) {
-            delete_transient('modified_posts_feed_output_' . $site->blog_id);
+            switch_to_blog($site->blog_id);
+            
+            // Delete all transients matching our pattern
+            // Direct query needed to clear dynamic cache keys with wildcard
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->query(
+                $wpdb->prepare(
+                    "DELETE FROM {$wpdb->options} 
+                     WHERE option_name LIKE %s 
+                     OR option_name LIKE %s",
+                    $wpdb->esc_like('_transient_modified_posts_feed_output_') . '%',
+                    $wpdb->esc_like('_transient_timeout_modified_posts_feed_output_') . '%'
+                )
+            );
+            
+            restore_current_blog();
         }
     } else {
-        delete_transient('modified_posts_feed_output_' . get_current_blog_id());
+        // Delete all transients matching our pattern
+        // Direct query needed to clear dynamic cache keys with wildcard
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM {$wpdb->options} 
+                 WHERE option_name LIKE %s 
+                 OR option_name LIKE %s",
+                $wpdb->esc_like('_transient_modified_posts_feed_output_') . '%',
+                $wpdb->esc_like('_transient_timeout_modified_posts_feed_output_') . '%'
+            )
+        );
     }
     
     // Check option - defaults to false (keep index by default)
     $remove_index = get_option('modified_posts_feed_remove_index_on_deactivate', false);
-    
     if ($remove_index) {
         modified_posts_feed_remove_index();
     }
@@ -899,17 +967,34 @@ function modified_posts_feed_uninstall() {
         return;
     }
     
-    // Clean up transients for all sites
+    global $wpdb;
+    
+    // Clean up transients and options for all sites
     if (is_multisite()) {
-        $sites = get_sites(array('number' => 10000));
+        $sites = get_sites(array('number' => 0)); // 0 = unlimited
         foreach ($sites as $site) {
             switch_to_blog($site->blog_id);
             
             // Check option BEFORE deleting it
             $remove_index = get_option('modified_posts_feed_remove_index_on_uninstall', false);
             
-            delete_transient('modified_posts_feed_output_' . $site->blog_id);
+            // Delete all transients matching our pattern
+            // Direct query needed to clear dynamic cache keys with wildcard
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $wpdb->query(
+                $wpdb->prepare(
+                    "DELETE FROM {$wpdb->options} 
+                     WHERE option_name LIKE %s 
+                     OR option_name LIKE %s",
+                    $wpdb->esc_like('_transient_modified_posts_feed_output_') . '%',
+                    $wpdb->esc_like('_transient_timeout_modified_posts_feed_output_') . '%'
+                )
+            );
+            
+            // Clean up other transients
             delete_transient('modified_posts_feed_flush_rewrite_rules');
+            
+            // Clean up all options
             delete_option('modified_posts_feed_slug');
             delete_option('modified_posts_feed_posts_per_page');
             delete_option('modified_posts_feed_post_types');
@@ -931,8 +1016,20 @@ function modified_posts_feed_uninstall() {
         // Check option BEFORE deleting it
         $remove_index = get_option('modified_posts_feed_remove_index_on_uninstall', false);
         
-        // Clean up transients
-        delete_transient('modified_posts_feed_output_' . get_current_blog_id());
+        // Delete all transients matching our pattern
+        // Direct query needed to clear dynamic cache keys with wildcard
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM {$wpdb->options} 
+                 WHERE option_name LIKE %s 
+                 OR option_name LIKE %s",
+                $wpdb->esc_like('_transient_modified_posts_feed_output_') . '%',
+                $wpdb->esc_like('_transient_timeout_modified_posts_feed_output_') . '%'
+            )
+        );
+        
+        // Clean up other transients
         delete_transient('modified_posts_feed_flush_rewrite_rules');
         
         // Clean up all options
