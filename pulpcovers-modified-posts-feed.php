@@ -335,15 +335,15 @@ class Modified_Posts_Feed {
     /**
      * Add settings page to admin menu
      */
-    public function add_settings_page() {
-        add_options_page(
-            'Modified Posts Feed Settings',
-            'Modified Posts Feed',
-            'manage_options',
-            'pulpcovers-modified-posts-feed',
-            array($this, 'render_settings_page')
-        );
-    }
+	public function add_settings_page() {
+	    add_options_page(
+	        'Pulpcovers Modified Posts Feed Settings',
+	        'Pulpcovers Modified Posts Feed',
+	        'manage_options',
+	        'pulpcovers-modified-posts-feed',
+	        array($this, 'render_settings_page')
+	    );
+	}
     
     /**
      * Register settings
