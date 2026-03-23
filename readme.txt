@@ -1,5 +1,6 @@
-=== Modified Posts Feed ===
+=== Pulpcovers Modified Posts Feed ===
 Contributors: pulpcovers
+Donate link: https://pulpcovers.com
 Tags: rss, feed, modified posts, updated posts, syndication
 Requires at least: 5.0
 Tested up to: 6.9
@@ -12,7 +13,7 @@ Creates a dedicated RSS feed of recently modified posts, ordered by last modifie
 
 == Description ==
 
-**Modified Posts Feed** adds a new RSS feed to your WordPress site that lists posts ordered by their *last modified* date instead of their publish date.
+**Pulpcovers Modified Posts Feed** adds a new RSS feed to your WordPress site that lists posts ordered by their *last modified* date instead of their publish date.
 
 This is useful for:
 
@@ -35,7 +36,6 @@ The plugin is lightweight, fast, and includes optional caching and database inde
 - Multisite‑compatible
 - Fully customizable via filters
 
-
 ### Filters
 
 Developers can customize:
@@ -52,14 +52,14 @@ See the source code for available filters.
 
 1. Upload the plugin folder to `/wp-content/plugins/`
 2. Activate the plugin through **Plugins → Installed Plugins**
-3. Visit **Settings → Modified Posts Feed** to configure options
+3. Visit **Settings → Pulpcovers Modified Posts Feed** to configure options
 4. Your feed will be available at:  
    `https://yoursite.com/feed/modified-posts/`
 
 == Frequently Asked Questions ==
 
 = Can I change the feed URL slug? =  
-Yes. Go to **Settings → Modified Posts Feed** and change the slug.  
+Yes. Go to **Settings → Pulpcovers Modified Posts Feed** and change the slug.  
 Rewrite rules will automatically flush.
 
 = Does this affect my main RSS feed? =  
@@ -95,7 +95,3 @@ This is optional but recommended for high‑traffic or large‑content sites.
 
 = 1.0.1 =
 Recommended update. Adds settings page, caching, and performance improvements.
-
-
-
-
