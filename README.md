@@ -35,12 +35,6 @@ Ideal for content-focused sites that regularly update existing articles, documen
 1. Upload the `modified-posts-feed` folder to `/wp-content/plugins/`
 2. Activate through the **Plugins** menu in WordPress
 
-### Via Git
-
-```bash
-cd wp-content/plugins
-git clone https://github.com/pulpcovers/Modified-Posts-Feed.git modified-posts-feed
-```
 ## Usage
 
 After activation, your feed is available at:
