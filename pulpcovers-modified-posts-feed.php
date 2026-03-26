@@ -292,6 +292,23 @@ class Pulpcovers_Modified_Posts_Feed {
             );
         }
     }
+    public function sanitize_post_types( $value ) {
+    if ( ! is_array( $value ) ) {
+        return array();
+    }
+
+    $value = array_map( 'sanitize_key', $value );
+
+    $public_types = get_post_types( array( 'public' => true ) );
+    $value        = array_intersect( $value, $public_types );
+
+    return $value;
+}
+
+public function sanitize_checkbox( $value ) {
+    return ( ! empty( $value ) ) ? 1 : 0;
+}
+
 }
 
 new Pulpcovers_Modified_Posts_Feed();
