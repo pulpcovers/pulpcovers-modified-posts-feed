@@ -9,7 +9,7 @@
 * License: CC0-1.0
 * Text Domain: pulpcovers-modified-posts-feed
 * Requires at least: 5.0
-* Requires PHP: 7.0
+* Requires PHP: 7.4
 * Tested up to: 6.9
 */
 
