@@ -286,6 +286,30 @@ class Pulpcovers_Modified_Posts_Feed {
                         <td>
                             <input type="text" name="modified_posts_feed_slug" value="<?php echo esc_attr( get_option( 'modified_posts_feed_slug', 'modified-posts' ) ); ?>" class="regular-text" />
                             <p class="description"><?php esc_html_e( 'The slug used for the feed URL.', 'pulpcovers-modified-posts-feed' ); ?></p>
+                            
+                            <?php
+                            $current_slug = get_option( 'modified_posts_feed_slug', 'modified-posts' );
+                            $feed_url     = home_url( '/feed/' . $current_slug . '/' );
+                            ?>
+                            
+                            <!-- Feed URL Display -->
+                            <div style="margin-top: 12px; padding: 12px; background: #f0f6fc; border-left: 4px solid #2271b1; border-radius: 2px;">
+                                <p style="margin: 0 0 8px 0;">
+                                    <strong><?php esc_html_e( 'Your Feed URL:', 'pulpcovers-modified-posts-feed' ); ?></strong>
+                                </p>
+                                <p style="margin: 0; display: flex; align-items: center; gap: 8px;">
+                                    <code style="padding: 6px 10px; background: #fff; border: 1px solid #c3c4c7; border-radius: 3px; font-size: 13px; flex-grow: 1; word-break: break-all;">
+                                        <?php echo esc_html( $feed_url ); ?>
+                                    </code>
+                                    <button type="button" class="button button-secondary" onclick="navigator.clipboard.writeText('<?php echo esc_js( $feed_url ); ?>'); this.textContent='<?php esc_attr_e( 'Copied!', 'pulpcovers-modified-posts-feed' ); ?>'; setTimeout(() => this.textContent='<?php esc_attr_e( 'Copy', 'pulpcovers-modified-posts-feed' ); ?>', 2000);">
+                                        <?php esc_html_e( 'Copy', 'pulpcovers-modified-posts-feed' ); ?>
+                                    </button>
+                                </p>
+                                <p style="margin: 8px 0 0 0; font-size: 12px; color: #646970;">
+                                    <span class="dashicons dashicons-info-outline" style="font-size: 14px; vertical-align: middle;"></span>
+                                    <?php esc_html_e( 'Note: After changing the slug, you may need to flush permalinks by visiting Settings → Permalinks.', 'pulpcovers-modified-posts-feed' ); ?>
+                                </p>
+                            </div>
                         </td>
                     </tr>
                     <tr>
