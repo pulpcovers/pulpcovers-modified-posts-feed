@@ -1,45 +1,92 @@
 <?php
 /**
- * Plugin Name: Pulpcovers Modified Posts Feed
- * Plugin URI: https://pulpcovers.com/
- * Description: Creates a dedicated RSS feed of recently modified posts, ordered by last modified date.
- * Version: 1.0.1
- * Author: Pulpcovers
- * Author URI: https://pulpcovers.com/
- * License: CC0-1.0
- * Requires at least: 5.0
- * Requires PHP: 7.0
- * Tested up to: 6.9
- * Text Domain: pulpcovers-modified-posts-feed
- */
+* Plugin Name: Pulpcovers Modified Posts Feed
+* Plugin URI: https://pulpcovers.com/
+* Description: Creates a dedicated RSS feed of recently modified posts, ordered by last modified date.
+* Version: 1.0.1
+* Author: Pulpcovers
+* Author URI: https://pulpcovers.com/
+* License: CC0-1.0
+* Text Domain: pulpcovers-modified-posts-feed
+* Requires at least: 5.0
+* Requires PHP: 7.0
+* Tested up to: 6.9
+*/
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
 class Pulpcovers_Modified_Posts_Feed {
-
-    public function __construct() {
+    
+    /**
+     * Singleton instance
+     *
+     * @var Pulpcovers_Modified_Posts_Feed
+     */
+    private static $instance = null;
+    
+    /**
+     * Get singleton instance
+     *
+     * @return Pulpcovers_Modified_Posts_Feed
+     */
+    public static function get_instance() {
+        if ( null === self::$instance ) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+    
+    /**
+     * Constructor - private to enforce singleton
+     */
+    private function __construct() {
         add_action( 'init', array( $this, 'init_feed' ) );
         add_action( 'admin_menu', array( $this, 'add_settings_page' ) );
         add_action( 'admin_init', array( $this, 'register_settings' ) );
         add_action( 'admin_notices', array( $this, 'admin_notices' ) );
         add_action( 'update_option_modified_posts_feed_cache_enabled', array( $this, 'maybe_clear_cache' ), 10, 2 );
         add_action( 'update_option_modified_posts_feed_index_enabled', array( $this, 'maybe_update_index' ), 10, 2 );
+        
+        // Cache invalidation hooks
+        add_action( 'save_post', array( $this, 'clear_feed_cache' ) );
+        add_action( 'delete_post', array( $this, 'clear_feed_cache' ) );
+        add_action( 'transition_post_status', array( $this, 'clear_feed_cache' ) );
     }
-
+    
+    /**
+     * Initialize the feed
+     */
     public function init_feed() {
         $slug = get_option( 'modified_posts_feed_slug', 'modified-posts' );
-
+        $slug = sanitize_title( $slug );
+        
+        if ( empty( $slug ) ) {
+            $slug = 'modified-posts';
+        }
+        
         add_feed( $slug, array( $this, 'render_feed' ) );
     }
-
+    
+    /**
+     * Clear feed cache when posts are updated
+     */
+    public function clear_feed_cache() {
+        if ( get_option( 'modified_posts_feed_cache_enabled', false ) ) {
+            delete_transient( 'modified_posts_feed_cache' );
+        }
+    }
+    
+    /**
+     * Render the RSS feed
+     */
     public function render_feed() {
         header( 'Content-Type: application/rss+xml; charset=' . get_option( 'blog_charset' ), true );
-
+        
         $cache_enabled = get_option( 'modified_posts_feed_cache_enabled', false );
         $cache_key     = 'modified_posts_feed_cache';
-
+        
         if ( $cache_enabled ) {
             $cached = get_transient( $cache_key );
             if ( $cached ) {
@@ -48,10 +95,10 @@ class Pulpcovers_Modified_Posts_Feed {
                 return;
             }
         }
-
+        
         $post_types = get_option( 'modified_posts_feed_post_types', array( 'post' ) );
         $limit      = intval( get_option( 'modified_posts_feed_limit', 10 ) );
-
+        
         $args = array(
             'post_type'      => $post_types,
             'posts_per_page' => $limit,
@@ -59,9 +106,9 @@ class Pulpcovers_Modified_Posts_Feed {
             'order'          => 'DESC',
             'post_status'    => 'publish',
         );
-
+        
         $query = new WP_Query( $args );
-
+        
         ob_start();
         echo '<?xml version="1.0" encoding="' . esc_attr( get_option( 'blog_charset' ) ) . '"?>';
         ?>
@@ -74,15 +121,17 @@ class Pulpcovers_Modified_Posts_Feed {
     <description><?php esc_html_e( 'A feed of recently modified posts.', 'pulpcovers-modified-posts-feed' ); ?></description>
     <language><?php bloginfo_rss( 'language' ); ?></language>
     <lastBuildDate><?php echo esc_html( mysql2date( 'D, d M Y H:i:s +0000', get_lastpostmodified( 'GMT' ), false ) ); ?></lastBuildDate>
-
-    <?php while ( $query->have_posts() ) : $query->the_post(); ?>
+    <?php 
+    if ( $query->have_posts() ) :
+        while ( $query->have_posts() ) : 
+            $query->the_post(); 
+    ?>
         <item>
             <title><?php the_title_rss(); ?></title>
             <link><?php the_permalink_rss(); ?></link>
             <pubDate><?php echo esc_html( mysql2date( 'D, d M Y H:i:s +0000', get_post_modified_time( 'Y-m-d H:i:s', true ), false ) ); ?></pubDate>
             <guid isPermaLink="false"><?php the_guid(); ?></guid>
             <description><![CDATA[<?php the_excerpt_rss(); ?>]]></description>
-
             <?php if ( get_option( 'modified_posts_feed_featured_image', false ) ) : ?>
                 <?php if ( has_post_thumbnail() ) :
                     $image = wp_get_attachment_image_src( get_post_thumbnail_id(), 'full' );
@@ -92,21 +141,27 @@ class Pulpcovers_Modified_Posts_Feed {
                 <?php endif; ?>
             <?php endif; ?>
         </item>
-    <?php endwhile; wp_reset_postdata(); ?>
-
+    <?php 
+        endwhile; 
+        wp_reset_postdata(); 
+    endif;
+    ?>
 </channel>
 </rss>
         <?php
-
         $output = ob_get_clean();
-
+        
         if ( $cache_enabled ) {
             set_transient( $cache_key, $output, HOUR_IN_SECONDS );
         }
+        
         // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- RSS XML output generated by this plugin.
         echo $output;
     }
-
+    
+    /**
+     * Add settings page to admin menu
+     */
     public function add_settings_page() {
         add_options_page(
             __( 'Pulpcovers Modified Posts Feed Settings', 'pulpcovers-modified-posts-feed' ),
@@ -116,7 +171,10 @@ class Pulpcovers_Modified_Posts_Feed {
             array( $this, 'render_settings_page' )
         );
     }
-
+    
+    /**
+     * Register plugin settings
+     */
     public function register_settings() {
         register_setting(
             'modified_posts_feed_settings',
@@ -127,7 +185,7 @@ class Pulpcovers_Modified_Posts_Feed {
                 'default'           => 'modified-posts',
             )
         );
-    
+        
         register_setting(
             'modified_posts_feed_settings',
             'modified_posts_feed_limit',
@@ -137,7 +195,7 @@ class Pulpcovers_Modified_Posts_Feed {
                 'default'           => 10,
             )
         );
-    
+        
         register_setting(
             'modified_posts_feed_settings',
             'modified_posts_feed_post_types',
@@ -147,7 +205,7 @@ class Pulpcovers_Modified_Posts_Feed {
                 'default'           => array( 'post' ),
             )
         );
-    
+        
         register_setting(
             'modified_posts_feed_settings',
             'modified_posts_feed_cache_enabled',
@@ -157,7 +215,7 @@ class Pulpcovers_Modified_Posts_Feed {
                 'default'           => false,
             )
         );
-    
+        
         register_setting(
             'modified_posts_feed_settings',
             'modified_posts_feed_featured_image',
@@ -167,7 +225,7 @@ class Pulpcovers_Modified_Posts_Feed {
                 'default'           => false,
             )
         );
-    
+        
         register_setting(
             'modified_posts_feed_settings',
             'modified_posts_feed_index_enabled',
@@ -178,47 +236,51 @@ class Pulpcovers_Modified_Posts_Feed {
             )
         );
     }
-
-
+    
+    /**
+     * Display admin notices
+     */
     public function admin_notices() {
         settings_errors( 'modified_posts_feed_messages' );
     }
-
+    
+    /**
+     * Render settings page
+     */
     public function render_settings_page() {
+        // Capability check
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'pulpcovers-modified-posts-feed' ) );
+        }
         ?>
         <div class="wrap">
             <h1><?php esc_html_e( 'Pulpcovers Modified Posts Feed Settings', 'pulpcovers-modified-posts-feed' ); ?></h1>
-
             <form method="post" action="options.php">
                 <?php
                 settings_fields( 'modified_posts_feed_settings' );
                 do_settings_sections( 'modified_posts_feed_settings' );
                 ?>
-
                 <table class="form-table">
-
                     <tr>
                         <th scope="row"><?php esc_html_e( 'Feed URL Slug', 'pulpcovers-modified-posts-feed' ); ?></th>
                         <td>
-                            <input type="text" name="modified_posts_feed_slug" value="<?php echo esc_attr( get_option( 'modified_posts_feed_slug', 'modified-posts' ) ); ?>" />
+                            <input type="text" name="modified_posts_feed_slug" value="<?php echo esc_attr( get_option( 'modified_posts_feed_slug', 'modified-posts' ) ); ?>" class="regular-text" />
                             <p class="description"><?php esc_html_e( 'The slug used for the feed URL.', 'pulpcovers-modified-posts-feed' ); ?></p>
                         </td>
                     </tr>
-
                     <tr>
                         <th scope="row"><?php esc_html_e( 'Posts Per Page', 'pulpcovers-modified-posts-feed' ); ?></th>
                         <td>
-                            <input type="number" name="modified_posts_feed_limit" value="<?php echo esc_attr( get_option( 'modified_posts_feed_limit', 10 ) ); ?>" />
+                            <input type="number" name="modified_posts_feed_limit" value="<?php echo esc_attr( get_option( 'modified_posts_feed_limit', 10 ) ); ?>" min="1" max="100" />
+                            <p class="description"><?php esc_html_e( 'Number of posts to display in the feed (1-100).', 'pulpcovers-modified-posts-feed' ); ?></p>
                         </td>
                     </tr>
-
                     <tr>
                         <th scope="row"><?php esc_html_e( 'Post Types', 'pulpcovers-modified-posts-feed' ); ?></th>
                         <td>
                             <?php
                             $post_types = get_post_types( array( 'public' => true ), 'objects' );
                             $selected   = (array) get_option( 'modified_posts_feed_post_types', array( 'post' ) );
-
                             foreach ( $post_types as $type ) :
                                 ?>
                                 <label>
@@ -228,38 +290,40 @@ class Pulpcovers_Modified_Posts_Feed {
                             <?php endforeach; ?>
                         </td>
                     </tr>
-
                     <tr>
                         <th scope="row"><?php esc_html_e( 'Enable Caching', 'pulpcovers-modified-posts-feed' ); ?></th>
                         <td>
                             <input type="checkbox" name="modified_posts_feed_cache_enabled" value="1" <?php checked( get_option( 'modified_posts_feed_cache_enabled', false ) ); ?> />
-                            <p class="description"><?php esc_html_e( 'Caches the feed output for one hour.', 'pulpcovers-modified-posts-feed' ); ?></p>
+                            <p class="description"><?php esc_html_e( 'Caches the feed output for one hour. Cache is automatically cleared when posts are updated.', 'pulpcovers-modified-posts-feed' ); ?></p>
                         </td>
                     </tr>
-
                     <tr>
                         <th scope="row"><?php esc_html_e( 'Include Featured Images', 'pulpcovers-modified-posts-feed' ); ?></th>
                         <td>
                             <input type="checkbox" name="modified_posts_feed_featured_image" value="1" <?php checked( get_option( 'modified_posts_feed_featured_image', false ) ); ?> />
+                            <p class="description"><?php esc_html_e( 'Include featured images in the RSS feed using Media RSS.', 'pulpcovers-modified-posts-feed' ); ?></p>
                         </td>
                     </tr>
-
                     <tr>
                         <th scope="row"><?php esc_html_e( 'Add Database Index', 'pulpcovers-modified-posts-feed' ); ?></th>
                         <td>
                             <input type="checkbox" name="modified_posts_feed_index_enabled" value="1" <?php checked( get_option( 'modified_posts_feed_index_enabled', false ) ); ?> />
-                            <p class="description"><?php esc_html_e( 'Adds an index on post_modified for performance.', 'pulpcovers-modified-posts-feed' ); ?></p>
+                            <p class="description"><?php esc_html_e( 'Adds an index on post_modified for performance. Recommended for sites with many posts.', 'pulpcovers-modified-posts-feed' ); ?></p>
                         </td>
                     </tr>
-
                 </table>
-
                 <?php submit_button(); ?>
             </form>
         </div>
         <?php
     }
-
+    
+    /**
+     * Clear cache when cache is disabled
+     *
+     * @param mixed $old Old option value.
+     * @param mixed $new New option value.
+     */
     public function maybe_clear_cache( $old, $new ) {
         if ( ! $new ) {
             delete_transient( 'modified_posts_feed_cache' );
@@ -271,7 +335,13 @@ class Pulpcovers_Modified_Posts_Feed {
             );
         }
     }
-
+    
+    /**
+     * Add or remove database index
+     *
+     * @param mixed $old Old option value.
+     * @param mixed $new New option value.
+     */
     public function maybe_update_index( $old, $new ) {
         global $wpdb;
         $table = $wpdb->posts;
@@ -289,12 +359,22 @@ class Pulpcovers_Modified_Posts_Feed {
             
             if ( empty( $index_exists ) ) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query(
+                $result = $wpdb->query(
                     $wpdb->prepare(
                         "ALTER TABLE %i ADD INDEX modified_posts_feed_idx (post_modified)",
                         $table
                     )
                 );
+                
+                if ( false === $result ) {
+                    add_settings_error(
+                        'modified_posts_feed_messages',
+                        'index_error',
+                        __( 'Error adding database index. Please check your database permissions.', 'pulpcovers-modified-posts-feed' ),
+                        'error'
+                    );
+                    return;
+                }
             }
             
             add_settings_error(
@@ -316,12 +396,22 @@ class Pulpcovers_Modified_Posts_Feed {
             
             if ( ! empty( $index_exists ) ) {
                 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
-                $wpdb->query(
+                $result = $wpdb->query(
                     $wpdb->prepare(
                         "ALTER TABLE %i DROP INDEX modified_posts_feed_idx",
                         $table
                     )
                 );
+                
+                if ( false === $result ) {
+                    add_settings_error(
+                        'modified_posts_feed_messages',
+                        'index_error',
+                        __( 'Error removing database index. Please check your database permissions.', 'pulpcovers-modified-posts-feed' ),
+                        'error'
+                    );
+                    return;
+                }
             }
             
             add_settings_error(
@@ -332,23 +422,35 @@ class Pulpcovers_Modified_Posts_Feed {
             );
         }
     }
+    
+    /**
+     * Sanitize post types array
+     *
+     * @param mixed $value Input value to sanitize.
+     * @return array Sanitized post types array.
+     */
     public function sanitize_post_types( $value ) {
-    if ( ! is_array( $value ) ) {
-        return array();
+        if ( ! is_array( $value ) ) {
+            return array();
+        }
+        
+        $value        = array_map( 'sanitize_key', $value );
+        $public_types = get_post_types( array( 'public' => true ) );
+        $value        = array_intersect( $value, $public_types );
+        
+        return $value;
     }
-
-    $value = array_map( 'sanitize_key', $value );
-
-    $public_types = get_post_types( array( 'public' => true ) );
-    $value        = array_intersect( $value, $public_types );
-
-    return $value;
+    
+    /**
+     * Sanitize checkbox value
+     *
+     * @param mixed $value Input value to sanitize.
+     * @return int 1 or 0.
+     */
+    public function sanitize_checkbox( $value ) {
+        return ( ! empty( $value ) ) ? 1 : 0;
+    }
 }
 
-public function sanitize_checkbox( $value ) {
-    return ( ! empty( $value ) ) ? 1 : 0;
-}
-
-}
-
-new Pulpcovers_Modified_Posts_Feed();
+// Initialize the plugin using singleton pattern
+Pulpcovers_Modified_Posts_Feed::get_instance();
