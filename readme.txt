@@ -4,7 +4,7 @@ Tags: rss, feed, modified posts, updated posts, syndication
 Requires at least: 6.2
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.2
+Stable tag: 1.3
 License: GPLv2 or later
 License URI: https://creativecommons.org/publicdomain/zero/1.0/
 
@@ -69,12 +69,16 @@ Rewrite rules are also flushed.
 
 == Changelog ==
 
+= 1.3 =
+* Added activation hook for automatic rewrite flush
+* Cache now clears automatically when any feed setting changes
+* Server-side enforcement of posts per page limit (1-100)
+* Rewrite rules automatically flush when feed slug changes
+
 = 1.2 =
 * Added full post content to feed
-* Updated WordPress compatibility to 7.0
 
 = 1.0.1 =
-* Automatic rewrite flush on activation
 * Manual action buttons to settings page
 * Copy-to-clipboard for feed URL
 * Code cleanup and documentation
