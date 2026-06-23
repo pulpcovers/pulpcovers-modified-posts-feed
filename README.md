@@ -150,7 +150,7 @@ The plugin is optimized for performance:
 
 ## License
 
-CC0-1.0 License - see the [LICENSE](LICENSE) file for details.
+GPLv2 License - see the [LICENSE](LICENSE) file for details.
 
 ## Credits
 
