@@ -52,7 +52,7 @@ class Pulpcovers_Modified_Posts_Feed {
         add_action( 'update_option_modified_posts_feed_slug', array( $this, 'clear_feed_cache' ) );
         add_action( 'update_option_modified_posts_feed_limit', array( $this, 'clear_feed_cache' ) );
         add_action( 'update_option_modified_posts_feed_post_types', array( $this, 'clear_feed_cache' ) );
-        add_action( 'update_option_modified_posts_feed_featured_image', array( $this, 'clear_feed_cache' ) 
+        add_action( 'update_option_modified_posts_feed_featured_image', array( $this, 'clear_feed_cache' ) );
 
         // Cache invalidation hooks
         add_action( 'save_post', array( $this, 'clear_feed_cache' ) );
