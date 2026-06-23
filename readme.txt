@@ -6,7 +6,7 @@ Tested up to: 7.0
 Requires PHP: 7.4
 Stable tag: 1.3
 License: GPLv2 or later
-License URI: https://creativecommons.org/publicdomain/zero/1.0/
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Creates a dedicated RSS feed of recently modified posts, ordered by last modified date. Ideal for news sites, editors, and content workflows.
 
