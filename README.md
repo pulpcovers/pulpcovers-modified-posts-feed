@@ -4,7 +4,7 @@ A WordPress plugin that generates an RSS feed of recently modified posts, ordere
 
 [![WordPress](https://img.shields.io/badge/WordPress-6.2%2B-blue.svg)](https://wordpress.org/)
 [![PHP](https://img.shields.io/badge/PHP-7.4%2B-purple.svg)](https://php.net/)
-[![License](https://img.shields.io/badge/License-CC0--1.0-green.svg)](https://creativecommons.org/publicdomain/zero/1.0/)
+[![License: GPL v2+](https://shields.io)](https://spdx.org/licenses/GPL-2.0-or-later.html)
 
 ## Description
 
