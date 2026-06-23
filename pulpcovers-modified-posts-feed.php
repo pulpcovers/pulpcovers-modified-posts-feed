@@ -37,23 +37,28 @@ class Pulpcovers_Modified_Posts_Feed {
         return self::$instance;
     }
     
+    
     /**
      * Constructor - private to enforce singleton
      */
     private function __construct() {
-    add_action( 'init', array( $this, 'init_feed' ) );
-    add_action( 'admin_menu', array( $this, 'add_settings_page' ) );
-    add_action( 'admin_init', array( $this, 'register_settings' ) );
-    add_action( 'admin_notices', array( $this, 'admin_notices' ) );
-    add_action( 'update_option_modified_posts_feed_cache_enabled', array( $this, 'maybe_clear_cache' ), 10, 2 );
-    add_action( 'update_option_modified_posts_feed_index_enabled', array( $this, 'maybe_update_index' ), 10, 2 );
-    add_action( 'update_option_modified_posts_feed_slug', array( $this, 'flush_on_slug_change' ), 10, 2 );
+        add_action( 'init', array( $this, 'init_feed' ) );
+        add_action( 'admin_menu', array( $this, 'add_settings_page' ) );
+        add_action( 'admin_init', array( $this, 'register_settings' ) );
+        add_action( 'admin_notices', array( $this, 'admin_notices' ) );
+        add_action( 'update_option_modified_posts_feed_cache_enabled', array( $this, 'maybe_clear_cache' ), 10, 2 );
+        add_action( 'update_option_modified_posts_feed_index_enabled', array( $this, 'maybe_update_index' ), 10, 2 );
+        add_action( 'update_option_modified_posts_feed_slug', array( $this, 'flush_on_slug_change' ), 10, 2 );
+        add_action( 'update_option_modified_posts_feed_slug', array( $this, 'clear_feed_cache' ) );
+        add_action( 'update_option_modified_posts_feed_limit', array( $this, 'clear_feed_cache' ) );
+        add_action( 'update_option_modified_posts_feed_post_types', array( $this, 'clear_feed_cache' ) );
+        add_action( 'update_option_modified_posts_feed_featured_image', array( $this, 'clear_feed_cache' ) 
 
-    // Cache invalidation hooks
-    add_action( 'save_post', array( $this, 'clear_feed_cache' ) );
-    add_action( 'delete_post', array( $this, 'clear_feed_cache' ) );
-    add_action( 'transition_post_status', array( $this, 'clear_feed_cache' ) );
-}
+        // Cache invalidation hooks
+        add_action( 'save_post', array( $this, 'clear_feed_cache' ) );
+        add_action( 'delete_post', array( $this, 'clear_feed_cache' ) );
+        add_action( 'transition_post_status', array( $this, 'clear_feed_cache' ) );
+    }
     
     /**
      * Initialize the feed
@@ -556,6 +561,13 @@ class Pulpcovers_Modified_Posts_Feed {
         return ( ! empty( $value ) ) ? 1 : 0;
     }
 }
+
+// Flush rewrite rules on activation so the feed URL works immediately
+register_activation_hook( __FILE__, function() {
+    $instance = Pulpcovers_Modified_Posts_Feed::get_instance();
+    $instance->init_feed();
+    flush_rewrite_rules();
+});
 
 // Initialize the plugin using singleton pattern
 Pulpcovers_Modified_Posts_Feed::get_instance();
