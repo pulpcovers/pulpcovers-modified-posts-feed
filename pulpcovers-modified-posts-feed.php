@@ -3,7 +3,7 @@
 * Plugin Name: Pulpcovers Modified Posts Feed
 * Plugin URI: https://github.com/pulpcovers/pulpcovers-modified-posts-feed/
 * Description: Creates a dedicated RSS feed of recently modified posts, ordered by last modified date.
-* Version: 1.2
+* Version: 1.3
 * Author: Pulpcovers
 * License: GPLv2 or later
 * Text Domain: pulpcovers-modified-posts-feed
