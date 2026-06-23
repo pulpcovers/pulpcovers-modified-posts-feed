@@ -131,6 +131,12 @@ The plugin is optimized for performance:
 
 ## Changelog
 
+### 1.3
+- Added activation hook for automatic rewrite flush
+- Cache now clears automatically when any feed setting changes
+- Server-side enforcement of posts per page limit (1-100)
+- Rewrite rules automatically flush when feed slug changes
+
 ### 1.2
 - Added full post content to feed
   
