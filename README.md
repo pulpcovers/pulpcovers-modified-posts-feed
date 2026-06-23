@@ -156,7 +156,7 @@ The plugin is optimized for performance:
 
 ## License
 
-GPLv2 License - see the [LICENSE](LICENSE) file for details.
+GPLv2 or later - see the [LICENSE](LICENSE) file for details.
 
 ## Credits
 
