@@ -5,7 +5,7 @@
 * Description: Creates a dedicated RSS feed of recently modified posts, ordered by last modified date.
 * Version: 1.2
 * Author: Pulpcovers
-* License: CC0-1.0
+* License: GPLv2 or later
 * Text Domain: pulpcovers-modified-posts-feed
 * Requires at least: 6.2
 * Requires PHP: 7.4
