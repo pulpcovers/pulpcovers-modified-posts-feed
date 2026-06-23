@@ -212,7 +212,10 @@ class Pulpcovers_Modified_Posts_Feed {
             'modified_posts_feed_limit',
             array(
                 'type'              => 'integer',
-                'sanitize_callback' => 'absint',
+                'sanitize_callback' => function( $value ) {
+                    $value = absint( $value );
+                    return max( 1, min( 100, $value ) );
+                },
                 'default'           => 10,
             )
         );
