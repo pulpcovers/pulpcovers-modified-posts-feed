@@ -41,18 +41,19 @@ class Pulpcovers_Modified_Posts_Feed {
      * Constructor - private to enforce singleton
      */
     private function __construct() {
-        add_action( 'init', array( $this, 'init_feed' ) );
-        add_action( 'admin_menu', array( $this, 'add_settings_page' ) );
-        add_action( 'admin_init', array( $this, 'register_settings' ) );
-        add_action( 'admin_notices', array( $this, 'admin_notices' ) );
-        add_action( 'update_option_modified_posts_feed_cache_enabled', array( $this, 'maybe_clear_cache' ), 10, 2 );
-        add_action( 'update_option_modified_posts_feed_index_enabled', array( $this, 'maybe_update_index' ), 10, 2 );
-        
-        // Cache invalidation hooks
-        add_action( 'save_post', array( $this, 'clear_feed_cache' ) );
-        add_action( 'delete_post', array( $this, 'clear_feed_cache' ) );
-        add_action( 'transition_post_status', array( $this, 'clear_feed_cache' ) );
-    }
+    add_action( 'init', array( $this, 'init_feed' ) );
+    add_action( 'admin_menu', array( $this, 'add_settings_page' ) );
+    add_action( 'admin_init', array( $this, 'register_settings' ) );
+    add_action( 'admin_notices', array( $this, 'admin_notices' ) );
+    add_action( 'update_option_modified_posts_feed_cache_enabled', array( $this, 'maybe_clear_cache' ), 10, 2 );
+    add_action( 'update_option_modified_posts_feed_index_enabled', array( $this, 'maybe_update_index' ), 10, 2 );
+    add_action( 'update_option_modified_posts_feed_slug', array( $this, 'flush_on_slug_change' ), 10, 2 );
+
+    // Cache invalidation hooks
+    add_action( 'save_post', array( $this, 'clear_feed_cache' ) );
+    add_action( 'delete_post', array( $this, 'clear_feed_cache' ) );
+    add_action( 'transition_post_status', array( $this, 'clear_feed_cache' ) );
+}
     
     /**
      * Initialize the feed
@@ -311,7 +312,7 @@ class Pulpcovers_Modified_Posts_Feed {
                                 </p>
                                 <p style="margin: 8px 0 0 0; font-size: 12px; color: #646970;">
                                     <span class="dashicons dashicons-info-outline" style="font-size: 14px; vertical-align: middle;"></span>
-                                    <?php esc_html_e( 'Note: After changing the slug, you may need to flush permalinks by visiting Settings → Permalinks.', 'pulpcovers-modified-posts-feed' ); ?>
+                                    <?php esc_html_e( 'Permalink rules are automatically updated when the slug is changed.', 'pulpcovers-modified-posts-feed' ); ?>
                                 </p>
                             </div>
                         </td>
@@ -512,6 +513,18 @@ class Pulpcovers_Modified_Posts_Feed {
                 __( 'Database index removed.', 'pulpcovers-modified-posts-feed' ),
                 'success'
             );
+        }
+    }
+    /**
+     * Flush rewrite rules when the feed slug changes
+     *
+     * @param mixed $old Old slug value.
+     * @param mixed $new New slug value.
+     */
+    public function flush_on_slug_change( $old, $new ) {
+        if ( $old !== $new ) {
+            add_feed( sanitize_title( $new ), array( $this, 'render_feed' ) );
+            flush_rewrite_rules();
         }
     }
     
